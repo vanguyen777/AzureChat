@@ -1,0 +1,7 @@
+Event
+| where TimeGenerated > ago(30m)
+| where Computer contains "LAB-WIN01"
+| where EventID == 4104
+| where RenderedDescription contains "FromBase64String"
+| project TimeGenerated, Computer, UserName, RenderedDescription
+| sort by TimeGenerated desc
