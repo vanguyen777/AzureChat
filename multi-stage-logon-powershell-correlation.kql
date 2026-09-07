@@ -1,0 +1,35 @@
+SecurityEvent
+| where TimeGenerated > ago(30m)
+| where Computer contains "LAB-WIN01"
+| where EventID == 4625
+| project
+    SecurityTime=TimeGenerated,
+    Computer,
+    Account,
+    IpAddress,
+    LogonType,
+    Activity
+| join kind=inner (
+    Event
+    | where TimeGenerated > ago(30m)
+    | where Computer contains "LAB-WIN01"
+    | where EventID == 4104
+    | where RenderedDescription contains "FromBase64String"
+    | project
+        PowerShellTime=TimeGenerated,
+        Computer,
+        UserName,
+        RenderedDescription
+) on Computer
+| where PowerShellTime >= SecurityTime
+| where PowerShellTime <= SecurityTime + 15m
+| project
+    TimeGenerated=PowerShellTime,
+    Computer,
+    SecurityTime,
+    Account,
+    IpAddress,
+    LogonType,
+    PowerShellTime,
+    UserName,
+    RenderedDescription
