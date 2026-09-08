@@ -1,0 +1,40 @@
+                        LAB-WIN01
+                            |
+           +----------------+----------------+
+           |                                 |
+           v                                 v
+ Windows Security Log              PowerShell Operational Log
+ Event IDs 4625 / 4688                  Event ID 4104
+           |                                 |
+           +----------------+----------------+
+                            |
+                            v
+                   Azure Monitor Agent
+                            |
+              +-------------+-------------+
+              |                           |
+              v                           v
+     dcr-windows-security         dcr-powershell-logs
+              |                           |
+              v                           v
+       SecurityEvent                    Event
+              |                           |
+              +-------------+-------------+
+                            |
+                            v
+                 Log Analytics Workspace
+                       law-soc-lab
+                            |
+                            v
+                    Microsoft Sentinel
+                            |
+             +--------------+--------------+
+             |                             |
+             v                             v
+         KQL Hunting                Analytics Rules
+                                             |
+                                             v
+                                       SecurityAlert
+                                             |
+                                             v
+                                      SecurityIncident
