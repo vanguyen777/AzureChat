@@ -12,3 +12,70 @@ Telemetry validated:
 - SecurityEvent: Windows Security events
 - Event: PowerShell Operational Event ID 4104
 #>
+param(
+    [string]$ResourceGroupName = "rg-soc-lab",
+    [string]$WorkspaceName = "law-soc-lab",
+    [string]$ComputerName = "LAB-WIN01",
+    [int]$LookbackMinutes = 30
+)
+
+$workspace = Get-AzOperationalInsightsWorkspace `
+    -ResourceGroupName $ResourceGroupName `
+    -Name $WorkspaceName
+
+$workspaceId = $workspace.CustomerId
+
+$securityQuery = @"
+SecurityEvent
+| where TimeGenerated > ago(${LookbackMinutes}m)
+| where Computer contains "$ComputerName"
+| summarize EventCount=count(), LastEvent=max(TimeGenerated)
+"@
+
+$powerShellQuery = @"
+Event
+| where TimeGenerated > ago(${LookbackMinutes}m)
+| where Computer contains "$ComputerName"
+| where EventID == 4104
+| summarize EventCount=count(), LastEvent=max(TimeGenerated)
+"@
+
+$securityResult = Invoke-AzOperationalInsightsQuery `
+    -WorkspaceId $workspaceId `
+    -Query $securityQuery
+
+$powerShellResult = Invoke-AzOperationalInsightsQuery `
+    -WorkspaceId $workspaceId `
+    -Query $powerShellQuery
+
+$security = $securityResult.Results | Select-Object -First 1
+$powerShell = $powerShellResult.Results | Select-Object -First 1
+
+Write-Host ""
+Write-Host "Microsoft Sentinel SOC Lab - Telemetry Health Check"
+Write-Host "================================================="
+Write-Host "Computer: $ComputerName"
+Write-Host "Lookback: $LookbackMinutes minutes"
+Write-Host ""
+
+if ($security.EventCount -gt 0) {
+    Write-Host "[OK] Windows Security telemetry"
+    Write-Host "     Events: $($security.EventCount)"
+    Write-Host "     Last event: $($security.LastEvent)"
+}
+else {
+    Write-Host "[WARNING] No recent Windows Security telemetry"
+}
+
+Write-Host ""
+
+if ($powerShell.EventCount -gt 0) {
+    Write-Host "[OK] PowerShell Script Block telemetry"
+    Write-Host "     Events: $($powerShell.EventCount)"
+    Write-Host "     Last event: $($powerShell.LastEvent)"
+}
+else {
+    Write-Host "[WARNING] No recent PowerShell 4104 telemetry"
+}
+
+Write-Host ""
