@@ -1,0 +1,9 @@
+SecurityEvent
+| where EventID == 4625
+| summarize
+    FailedLogons=count(),
+    FirstAttempt=min(TimeGenerated),
+    LastAttempt=max(TimeGenerated)
+    by Account, Computer, IpAddress
+| where FailedLogons >= 5
+| extend TimeGenerated = LastAttempt
