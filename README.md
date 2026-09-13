@@ -170,6 +170,18 @@ Detection: [`detections/privileged-account-correlation.kql`](detections/privileg
 Investigation: [`incidents/INC-004-privileged-account-investigation.md`](incidents/INC-004-privileged-account-investigation.md)  
 Evidence: [`timeline`](screenshots/day6-account-privilege-timeline.png) · [`4732 details`](screenshots/day6-4732-administrators-group-details.png) · [`MemberSid`](screenshots/day6-4732-member-sid-evidence.png) · [`correlation`](screenshots/day6-privileged-account-rule-configuration.png) · [`fresh telemetry`](screenshots/day6-fresh-privileged-account-telemetry.png) · [`rule verification`](screenshots/day6-privileged-account-rule-verified-cloudshell.png) · [`alert`](screenshots/day6-privileged-account-security-alert.png) · [`incident`](screenshots/day6-privileged-account-security-incident.png)
 
+## Scenario 5 — Suspicious Certutil Decode Process (Pending Live Validation)
+
+**Objective:** Safely validate process-creation telemetry and detect a signed Windows utility used to decode a benign local marker.
+
+**Detection design:** [detections/suspicious-process-detection.kql](detections/suspicious-process-detection.kql)
+
+The proposed simulation uses certutil.exe only against locally created text files. It performs no download, code execution, persistence, security-control bypass, or malware deployment. The detection requires Event ID 4688 ingestion with command-line auditing enabled and must be validated on LAB-WIN01 before a Sentinel rule is enabled.
+
+**MITRE ATT&CK:** Defense Evasion; T1140 — Deobfuscate/Decode Files or Information.
+
+**Status:** Pending endpoint telemetry verification, fresh Log Analytics evidence, Sentinel scheduled-rule validation, alert/incident generation, screenshots, and an incident report. No completion claim is made yet.
+
 # Detection Engineering Lessons
 
 ### Cross-table and temporal correlation
@@ -230,12 +242,14 @@ AzureChat/
 │   ├── failed-logon-detection.kql
 │   ├── suspicious-powershell.kql
 │   ├── multi-stage-logon-powershell-correlation.kql
-│   └── privileged-account-correlation.kql
+│   ├── privileged-account-correlation.kql
+│   └── suspicious-process-detection.kql
 ├── incidents/
 │   ├── INC-001-failed-logon-investigation.md
 │   ├── INC-002-powershell-investigation.md
 │   ├── INC-003-multi-stage-correlation.md
-│   └── INC-004-privileged-account-investigation.md
+│   ├── INC-004-privileged-account-investigation.md
+│   └── INC-005-suspicious-process-investigation.md
 └── screenshots/
     ├── day4-*.png
     ├── day5-*.png
