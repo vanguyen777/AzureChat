@@ -71,12 +71,15 @@ Telemetry path:
 Windows Security Log
 -> Event ID 4625
 -> AMA
+-> dcr-windows-security
+-> Microsoft-SecurityEvent
 -> SecurityEvent
 
 PowerShell Operational Log
 -> Event ID 4104
 -> AMA
 -> dcr-powershell-logs
+-> Microsoft-Event
 -> Event
 
 SecurityEvent + Event
@@ -132,8 +135,8 @@ unauthorized compromise occurred.
 
 ## Response
 
-No containment was required because the activity was generated within
-an authorized lab environment.
+No containment was required because the activity was generated within an
+authorized lab environment.
 
 In a production environment, investigation could include:
 
