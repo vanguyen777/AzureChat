@@ -1,0 +1,15 @@
+SecurityEvent
+| where TimeGenerated > ago(30m)
+| where Computer contains "LAB-WIN01"
+| where EventID == 4732
+| where TargetSid == "S-1-5-32-544"
+| project
+    TimeGenerated,
+    Computer,
+    SubjectAccount,
+    MemberName,
+    MemberSid,
+    TargetAccount,
+    TargetSid,
+    Activity
+| sort by TimeGenerated desc
