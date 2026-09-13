@@ -36,8 +36,23 @@ SecurityEvent + Event
 
 ## Implemented event coverage
 
-- Windows Security: 4625, 4720, 4732, 4733, 4725
+- Windows Security: 4624, 4625, 4688, 4720, 4722, 4724, 4725, 4732, 4733
 - PowerShell Script Block Logging: 4104
 - Cross-table temporal correlation: `SecurityEvent` + `Event`
 - SID-based correlation: account creation `TargetSid` → privileged group membership `MemberSid`
-- Process creation Event ID 4688 remains a planned fifth-scenario validation item.
+- Process creation: Event ID 4688 with populated command-line context verified for certutil decoding on `LAB-WIN01`.
+
+## Verified process-creation path
+
+```text
+Windows process creation
+→ Windows Security log (Event ID 4688)
+→ AMA
+→ dcr-windows-security
+→ SecurityEvent
+→ Sentinel scheduled rule: Suspicious Certutil Decode Process
+→ SecurityAlert
+→ SecurityIncident
+```
+
+The verified scheduled rule is enabled, Medium severity, runs every 5 minutes over a 15-minute lookback, triggers on results greater than 0, and enables incident creation. The [Scenario 5 case study](../incidents/INC-005-suspicious-process-investigation.md) documents the benign local simulation, record-specific parent processes and the limits of the displayed alert/incident linkage. The [evidence inventory](../screenshots/EVIDENCE_INVENTORY.md) maps captures to verified stages.

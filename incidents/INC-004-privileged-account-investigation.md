@@ -39,7 +39,7 @@ Windows Security Log
 
 Historical validation showed a controlled account creation sequence on `LAB-WIN01` in which `soclab-tempadmin` was created and then added to `Builtin\Administrators`. The account SID from Event ID 4720 matched the `MemberSid` in Event ID 4732, demonstrating reliable SID-based correlation even when `MemberName` was unresolved.
 
-A fresh validation sequence was then generated after the analytics rule was active using `soclab-tempadmin2`. Log Analytics confirmed fresh 4720 and 4732 telemetry. The enabled Sentinel analytics rule generated a fresh `SecurityAlert` and corresponding `SecurityIncident`.
+A fresh validation sequence was then generated after the analytics rule was active using `soclab-tempadmin2`. Log Analytics confirmed fresh 4720 and 4732 telemetry. The evidence separately confirms named High `SecurityAlert` and `SecurityIncident` records. The displayed alert at 2026-09-13 04:22:05 UTC and incident 46 at 04:22:17 UTC predate the second account's 04:44:59/04:45:05 UTC telemetry. These screenshots validate rule outputs from earlier testing; they do not establish that those outputs originated from `soclab-tempadmin2`.
 
 After evidence capture, the test account was removed from the Administrators group and disabled. The account was left disabled rather than deleted to preserve a clean lab state and associated lifecycle telemetry.
 
@@ -52,8 +52,8 @@ After evidence capture, the test account was removed from the Administrators gro
 - [SID-based privileged-account correlation](../screenshots/day6-privileged-account-rule-configuration.png)
 - [Fresh 4720/4732 validation telemetry](../screenshots/day6-fresh-privileged-account-telemetry.png)
 - [Analytics rule configuration verification](../screenshots/day6-privileged-account-rule-verified-cloudshell.png)
-- [Fresh SecurityAlert](../screenshots/day6-privileged-account-security-alert.png)
-- [Fresh SecurityIncident](../screenshots/day6-privileged-account-security-incident.png)
+- [SecurityAlert from earlier testing](../screenshots/day6-privileged-account-security-alert.png)
+- [SecurityIncident from earlier testing](../screenshots/day6-privileged-account-security-incident.png)
 - [Additional account-modification telemetry](../screenshots/day6-more-mod.png)
 
 ## MITRE ATT&CK
@@ -75,4 +75,4 @@ No containment was required beyond lab cleanup because the activity was authoriz
 
 ## Conclusion
 
-This scenario validated a complete privileged-account monitoring workflow using Windows Security telemetry, SID-based KQL correlation, a scheduled Microsoft Sentinel analytics rule, a fresh security alert, and a fresh Sentinel incident.
+This scenario validated a complete privileged-account monitoring workflow using Windows Security telemetry, SID-based KQL correlation, a scheduled Microsoft Sentinel analytics rule, a generated security alert and Sentinel incident, with a separate fresh second-account telemetry run and the timing limits documented above.

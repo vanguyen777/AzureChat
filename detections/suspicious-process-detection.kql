@@ -1,6 +1,6 @@
-// Proposed Scenario 5 detection.
-// Azure validation is pending. This query requires SecurityEvent ID 4688
-// ingestion and command-line auditing on LAB-WIN01.
+// Detect certutil decoding on LAB-WIN01 using Windows process-creation telemetry.
+// Source: SecurityEvent ID 4688 collected through AMA and dcr-windows-security.
+// Verified deployed scheduled-rule query; 15-minute lookback.
 
 SecurityEvent
 | where TimeGenerated > ago(15m)

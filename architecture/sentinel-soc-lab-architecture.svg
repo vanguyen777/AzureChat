@@ -15,7 +15,7 @@
 <rect width="1200" height="760" fill="#ffffff"/>
 <text x="600" y="42" class="label" font-size="26" font-weight="bold">Microsoft Sentinel SOC &amp; Incident Response Lab</text>
 <rect x="430" y="75" width="340" height="70" class="box"/><text x="600" y="105" class="label" font-weight="bold">LAB-WIN01</text><text x="600" y="130" class="small">Windows Server 2022</text>
-<rect x="80" y="205" width="300" height="90" class="box"/><text x="230" y="240" class="label">Windows Security Log</text><text x="230" y="267" class="small">4625 / 4720 / 4732 / 4733</text>
+<rect x="80" y="205" width="300" height="90" class="box"/><text x="230" y="240" class="label">Windows Security Log</text><text x="230" y="267" class="small">4625 / 4688 / 4720 / 4732 / 4733</text>
 <rect x="820" y="205" width="300" height="90" class="box"/><text x="970" y="240" class="label">PowerShell Operational</text><text x="970" y="267" class="small">Event ID 4104</text>
 <rect x="430" y="355" width="340" height="75" class="box"/><text x="600" y="388" class="label" font-weight="bold">Azure Monitor Agent</text><text x="600" y="412" class="small">AMA</text>
 <rect x="80" y="490" width="300" height="90" class="box"/><text x="230" y="525" class="label">dcr-windows-security</text><text x="230" y="552" class="small">Microsoft-SecurityEvent</text>

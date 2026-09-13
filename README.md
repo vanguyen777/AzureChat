@@ -2,287 +2,90 @@
 
 ## Overview
 
-This project is a hands-on Microsoft Sentinel SOC lab designed to demonstrate security monitoring, detection engineering, KQL threat hunting, incident investigation, automation, and MITRE ATT&CK mapping.
+A hands-on SOC portfolio project demonstrating Windows telemetry collection, KQL detection engineering, Microsoft Sentinel scheduled analytics rules, alert and incident investigation, automation, and MITRE ATT&CK mapping.
 
-The environment uses a Windows Server endpoint connected through Azure Monitor Agent (AMA) to Log Analytics and Microsoft Sentinel. Controlled security events are generated on the endpoint, collected through dedicated Data Collection Rules (DCRs), detected with KQL and scheduled analytics rules, and investigated through Sentinel alerts and incidents.
+**All five original Project 1 scenarios are complete.** Controlled, authorized activity on `LAB-WIN01` was used to validate detection behavior. Lab cases are classified **True Positive — Benign / Authorized Simulation**.
 
-### What this project demonstrates
-
-- Windows security event collection with AMA
-- Data Collection Rules and Log Analytics
-- Microsoft Sentinel scheduled analytics rules
-- KQL detection engineering and threat hunting
-- PowerShell Script Block Logging (Event ID 4104)
-- Cross-table and temporal event correlation
-- SID-based privileged-account correlation
-- Fresh Sentinel alert and incident validation
-- MITRE ATT&CK mapping
-- SOC-style incident documentation
-- PowerShell telemetry health-check automation
-
-## Lab Architecture
+## Lab architecture
 
 ![Microsoft Sentinel SOC lab architecture](architecture/sentinel-soc-lab-architecture.svg)
 
 ```text
-                         LAB-WIN01
-                             |
-             +---------------+---------------+
-             |                               |
-             v                               v
-     Windows Security Log          PowerShell Operational Log
-  4625 / 4720 / 4732 etc.              Event ID 4104
-             |                               |
-             +---------------+---------------+
-                             |
-                             v
-                    Azure Monitor Agent
-                             |
-              +--------------+--------------+
-              |                             |
-              v                             v
-     dcr-windows-security          dcr-powershell-logs
-              |                             |
-              v                             v
-       SecurityEvent                     Event
-              |                             |
-              +-------------+---------------+
-                            |
-                            v
-                    Log Analytics Workspace
-                         law-soc-lab
-                            |
-                            v
-                     Microsoft Sentinel
-                            |
-                +-----------+-----------+
-                |                       |
-                v                       v
-           KQL Hunting          Scheduled Analytics
-                                        |
-                                        v
-                                  SecurityAlert
-                                        |
-                                        v
-                                  SecurityIncident
+LAB-WIN01
+  ├─ Windows Security log → AMA → dcr-windows-security → SecurityEvent
+  └─ PowerShell Operational log → AMA → dcr-powershell-logs → Event
+                                      ↓
+                         Log Analytics: law-soc-lab
+                                      ↓
+                    Microsoft Sentinel KQL / scheduled rules
+                                      ↓
+                         SecurityAlert → SecurityIncident
 ```
 
-## Environment
+**Environment:** Windows Server 2022 Datacenter Server Core, resource group `rg-soc-lab`, workspace `law-soc-lab`, Azure Monitor Agent and two Data Collection Rules. See [architecture details](architecture/architecture.md).
 
-**Azure:** Resource group `rg-soc-lab`, Log Analytics workspace `law-soc-lab`, Microsoft Sentinel, Azure Monitor Agent, and two DCR telemetry paths.
+## Verified telemetry
 
-**Endpoint:** `LAB-WIN01`, Windows Server 2022 Datacenter Server Core, Windows Security auditing, and PowerShell Script Block Logging.
+- **Windows Security → SecurityEvent:** 4624 (successful logon), 4625 (failed logon), **4688 (process creation with command-line ingestion verified)**, 4720 (account created), 4722 (account enabled), 4724 (password reset attempt), 4725 (account disabled), 4732 (local group member added), and 4733 (local group member removed).
+- **PowerShell Operational → Event:** 4104 Script Block Logging, collected through `dcr-powershell-logs` / `Microsoft-Event`. `RenderedDescription` supplies script content.
+- Windows Security uses `dcr-windows-security` / `Microsoft-SecurityEvent`.
 
-## Telemetry
+## Completed detection scenarios
 
-### Windows Security Events
+| Scenario | Detection and validation | Investigation |
+|---|---|---|
+| 1 — Repeated failed Windows logons | [KQL](detections/failed-logon-detection.kql): five or more 4625 events in 15 minutes, grouped by account, host and IP. Controlled failures reached the threshold; historical alert records were observed. | [INC-001](incidents/INC-001-failed-logon-investigation.md) |
+| 2 — Suspicious PowerShell Base64 decoding | [KQL](detections/suspicious-powershell.kql): 4104 script content containing `FromBase64String`. Benign `SOC-LAB-DAY4` marker; Medium scheduled rule; fresh alert and incident validated. | [INC-002](incidents/INC-002-powershell-investigation.md) |
+| 3 — Failed logons followed by PowerShell | [KQL](detections/multi-stage-logon-powershell-correlation.kql): join 4625 and 4104 on host; PowerShell follows within 15 minutes. High scheduled rule, 5-minute frequency / 30-minute lookback; fresh alert and incident validated. | [INC-003](incidents/INC-003-multi-stage-correlation.md) |
+| 4 — New local account added to Administrators | [KQL](detections/privileged-account-correlation.kql): join creation `TargetSid` to group-add `MemberSid`; Administrators SID `S-1-5-32-544`; addition within 15 minutes. High enabled rule, 5-minute frequency / 30-minute lookback; alert and incident evidence plus a separate fresh telemetry run. | [INC-004](incidents/INC-004-privileged-account-investigation.md) |
+| 5 — Suspicious certutil decode process | [KQL](detections/suspicious-process-detection.kql): populated 4688 command line, certutil and decode conditions. Safe local text-file simulation; enabled Medium scheduled rule, 5-minute frequency / 15-minute lookback; fresh matching alert and same-title incidents validated. | [INC-005](incidents/INC-005-suspicious-process-investigation.md) |
 
-Windows Security telemetry is collected through AMA and `dcr-windows-security` into the `SecurityEvent` table. Validated Windows Security events used in the lab include 4624 (successful logon), 4625 (failed logon), 4720 (account created), 4722 (account enabled), 4724 (password reset attempt), 4725 (account disabled), 4732 (member added to a security-enabled local group), and 4733 (member removed from a security-enabled local group). Event ID 4688 process creation is a planned fifth-scenario validation item; its collection and command-line fields have not yet been validated in this repository.
+**Scenario 5:** The 2026-09-13 21:39:58 UTC simulation encoded and decoded only benign local text files; hash verification returned True. No download, executable payload, persistence or security-control bypass occurred. Endpoint record 15852 and fresh `SecurityEvent` telemetry show the captured decode command and PowerShell parent. The rule verification displays the full stored 15-minute KQL and `GreaterThan 0` with incident creation enabled. The incident report distinguishes the earlier cmd.exe-parent event and the separate alert/incident examples; direct linkage between the displayed alert and selected incident 55 is not inferred.
 
-### PowerShell Script Block Logging
+Day 7 evidence: [simulation](screenshots/day7-certutil-safe-simulation.png) · [4688 ingestion](screenshots/day7-4688-certutil-ingestion.png) · [fresh telemetry](screenshots/day7-fresh-certutil-telemetry.png) · [manual KQL](screenshots/day7-suspicious-process-detection-kql.png) · [deployed rule](screenshots/day7-suspicious-process-rule-verified-cloudshell.png) · [alert](screenshots/day7-suspicious-process-security-alert.png) · [incident](screenshots/day7-suspicious-process-security-incident.png).
 
-PowerShell Operational Event ID 4104 is collected by the separate `dcr-powershell-logs` DCR using the `Microsoft-Event` stream and stored in the Log Analytics `Event` table. `RenderedDescription` contains the script-block content used by the PowerShell detections.
+**Scenario 4 evidence limit:** The displayed 04:22 UTC alert/incident predate the second account's 04:44/04:45 UTC events. They validate the rule outputs separately, without proving those outputs came from `soclab-tempadmin2`. See the [evidence inventory](screenshots/EVIDENCE_INVENTORY.md) for every screenshot, stage and limitation.
 
-# Detection Scenarios
+## Detection engineering lessons
 
-## Scenario 1 — Repeated Failed Windows Logons
+- **Temporal correlation:** Join `SecurityEvent` authentication and `Event` PowerShell activity by `Computer`, then constrain the sequence in time.
+- **SID correlation:** Event 4732 recorded `MemberName` as unresolved while preserving `MemberSid`; matching it to creation `TargetSid` avoids reliance on display names.
+- **Separate telemetry streams:** PowerShell 4104 supplies script content, while SecurityEvent 4688 supplies verified process/command-line context. Early PowerShell investigation pivoted to 4104; Day 7 completed 4688 validation.
+- **Evidence discipline:** Distinguish manual hunting queries from deployed rules, captured record timestamps from ingestion latency, and named outputs from directly verified alert-ID linkage.
 
-**Objective:** Detect repeated Windows authentication failures that could indicate password guessing or brute-force activity.
+MITRE ATT&CK mappings: Credential Access / T1110 / T1110.001 (Scenario 1); Execution / T1059 / T1059.001 (Scenario 2); both for Scenario 3; configured Privilege Escalation / T1098 (Scenario 4); Defense Evasion / T1140 (Scenario 5). Behavioral mappings do not imply malicious intent in these authorized simulations.
 
-**Data source:** `SecurityEvent`, Event ID 4625.
+## Automation and response workflow
 
-```kusto
-SecurityEvent
-| where EventID == 4625
-| summarize FailedLogons=count(), FirstAttempt=min(TimeGenerated), LastAttempt=max(TimeGenerated) by Account, Computer, IpAddress
-| where FailedLogons >= 5
-| extend TimeGenerated = LastAttempt
-```
-
-**MITRE ATT&CK:** Credential Access; T1110 Brute Force; T1110.001 Password Guessing.
-
-**Validation:** Controlled failed authentication attempts were generated on `LAB-WIN01`. The events were collected into `SecurityEvent` and the KQL threshold was reached. Historical Sentinel alert records were also observed during testing.
-
-Detection: [`detections/failed-logon-detection.kql`](detections/failed-logon-detection.kql)  
-Investigation: [`incidents/INC-001-failed-logon-investigation.md`](incidents/INC-001-failed-logon-investigation.md)  
-Evidence: [`screenshots/failed-logons-detection.png`](screenshots/failed-logons-detection.png)
-
-## Scenario 2 — Suspicious PowerShell Base64 Decoding
-
-**Objective:** Detect PowerShell script execution involving Base64 decoding.
-
-**Data source:** Microsoft-Windows-PowerShell/Operational, Event ID 4104, Log Analytics `Event`, field `RenderedDescription`.
-
-```kusto
-Event
-| where EventID == 4104
-| where RenderedDescription contains "FromBase64String"
-| project TimeGenerated, Computer, UserName, RenderedDescription
-```
-
-A controlled PowerShell script decoded the benign marker `SOC-LAB-DAY4`. No malware or malicious payload was executed. The validated signal is the script-block content containing `FromBase64String`.
-
-**Sentinel rule:** `Suspicious PowerShell Base64 Decoding`, Medium severity, 5-minute frequency, 15-minute lookback.
-
-**Validation:** A fresh Sentinel `SecurityAlert` and `SecurityIncident` were generated during testing.
-
-**MITRE ATT&CK:** Execution; T1059 Command and Scripting Interpreter; T1059.001 PowerShell.
-
-Detection: [`detections/suspicious-powershell.kql`](detections/suspicious-powershell.kql)  
-Investigation: [`incidents/INC-002-powershell-investigation.md`](incidents/INC-002-powershell-investigation.md)  
-Evidence: [`4104 detection`](screenshots/day4-4104-detection.png) · [`alert`](screenshots/day4-security-alert.png) · [`incident`](screenshots/day4-security-incident.png)
-
-## Scenario 3 — Multi-Stage Failed Logon and PowerShell Correlation
-
-**Objective:** Develop a higher-confidence detection by correlating a failed Windows authentication event with subsequent suspicious PowerShell activity on the same endpoint.
-
-Authentication telemetry comes from `SecurityEvent` Event ID 4625. PowerShell telemetry comes from `Event` Event ID 4104 with `RenderedDescription` containing `FromBase64String`. The final rule joins the two tables on `Computer` and requires the PowerShell event to occur after the failed authentication and within 15 minutes.
-
-**Sentinel rule:** `Multi-Stage Failed Logons Followed by PowerShell`, Scheduled, High severity, enabled, 5-minute frequency, 30-minute lookback, trigger `GreaterThan 0`, incident creation enabled, 15-minute correlation window.
-
-**Validation:** A controlled multi-stage sequence was generated on `LAB-WIN01`. The final query correlated the two telemetry sources, and a fresh `SecurityAlert` and fresh `SecurityIncident` were generated.
-
-**MITRE ATT&CK:** Credential Access / T1110 / T1110.001 and Execution / T1059 / T1059.001.
-
-**Classification:** **True Positive — Benign / Authorized Simulation**.
-
-Detection: [`detections/multi-stage-logon-powershell-correlation.kql`](detections/multi-stage-logon-powershell-correlation.kql)  
-Investigation: [`incidents/INC-003-multi-stage-correlation.md`](incidents/INC-003-multi-stage-correlation.md)  
-Evidence: [`correlation`](screenshots/day5-correlation2-kql.png) · [`rule configuration`](screenshots/day5-rule-configuration.png) · [`alert`](screenshots/day5-security-alert.png) · [`incident`](screenshots/day5-security-incident.png)
-
-## Scenario 4 — Newly Created Local Account Added to Administrators
-
-**Objective:** Detect a newly created local Windows account that is subsequently granted local administrator privileges.
-
-**Data source:** `SecurityEvent`, primarily Event ID 4720 (account created) and Event ID 4732 (member added to a security-enabled local group).
-
-The correlation matches the SID assigned during account creation (`TargetSid`) to the SID recorded in the privileged group-add event (`MemberSid`). This avoids depending on `MemberName`, which was observed as `-` in the collected 4732 event. The 4732 event must target the built-in Administrators SID `S-1-5-32-544`, and the privilege addition must occur within 15 minutes after account creation.
-
-**Sentinel rule:** `Local Account Added to Administrators Group`, Scheduled, High severity, enabled, 5-minute frequency, 30-minute lookback, trigger `GreaterThan 0`, incident creation enabled.
-
-**Validation:** Historical testing correlated `soclab-tempadmin` account creation with its addition to `Builtin\Administrators`. A second fresh account, `soclab-tempadmin2`, was then created after the analytics rule was active and added to Administrators. Fresh 4720/4732 telemetry was confirmed, followed by a fresh `SecurityAlert` and `SecurityIncident`. After evidence capture, the account was removed from Administrators and disabled.
-
-**MITRE ATT&CK:** Privilege Escalation / T1098 Account Manipulation. This is the mapping configured on the validated analytics rule.
-
-**Classification:** **True Positive — Benign / Authorized Simulation**.
-
-Detection: [`detections/privileged-account-correlation.kql`](detections/privileged-account-correlation.kql)  
-Investigation: [`incidents/INC-004-privileged-account-investigation.md`](incidents/INC-004-privileged-account-investigation.md)  
-Evidence: [`timeline`](screenshots/day6-account-privilege-timeline.png) · [`4732 details`](screenshots/day6-4732-administrators-group-details.png) · [`MemberSid`](screenshots/day6-4732-member-sid-evidence.png) · [`correlation`](screenshots/day6-privileged-account-rule-configuration.png) · [`fresh telemetry`](screenshots/day6-fresh-privileged-account-telemetry.png) · [`rule verification`](screenshots/day6-privileged-account-rule-verified-cloudshell.png) · [`alert`](screenshots/day6-privileged-account-security-alert.png) · [`incident`](screenshots/day6-privileged-account-security-incident.png)
-
-## Scenario 5 — Suspicious Certutil Decode Process (Pending Live Validation)
-
-**Objective:** Safely validate process-creation telemetry and detect a signed Windows utility used to decode a benign local marker.
-
-**Detection design:** [detections/suspicious-process-detection.kql](detections/suspicious-process-detection.kql)
-
-The proposed simulation uses certutil.exe only against locally created text files. It performs no download, code execution, persistence, security-control bypass, or malware deployment. The detection requires Event ID 4688 ingestion with command-line auditing enabled and must be validated on LAB-WIN01 before a Sentinel rule is enabled.
-
-**MITRE ATT&CK:** Defense Evasion; T1140 — Deobfuscate/Decode Files or Information.
-
-**Status:** Pending endpoint telemetry verification, fresh Log Analytics evidence, Sentinel scheduled-rule validation, alert/incident generation, screenshots, and an incident report. No completion claim is made yet.
-
-# Detection Engineering Lessons
-
-### Cross-table and temporal correlation
-
-The multi-stage rule correlates `SecurityEvent` and `Event` on `Computer`, then constrains the relationship in time. This adds context beyond alerting independently on authentication failures or PowerShell activity.
-
-### SID-based identity correlation
-
-The privileged-account scenario demonstrated why stable identifiers can be more reliable than display names. Event ID 4732 recorded `MemberName` as unresolved while preserving `MemberSid`. Matching that SID to the `TargetSid` from Event ID 4720 allowed the detection to reliably connect account creation with subsequent privilege assignment.
-
-### PowerShell telemetry pivot
-
-Windows Security Event ID 4688 was initially investigated for process command-line telemetry. PowerShell Script Block Logging was configured when the required PowerShell content was not exposed in the collected SecurityEvent records, and Event ID 4104 supplied the script content needed for detection.
-
-### Separate DCRs
-
-The Sentinel Windows Security Events path uses the `Microsoft-SecurityEvent` stream and populates `SecurityEvent`. PowerShell Operational logs use a separate Windows Event Logs DCR with the `Microsoft-Event` stream, populating `Event`.
-
-# Automation
-
-[`automation/validate-sentinel-telemetry.ps1`](automation/validate-sentinel-telemetry.ps1) is a lightweight health check for the lab. It queries the Log Analytics workspace and validates recent Windows Security and PowerShell 4104 ingestion from `LAB-WIN01`.
-
-# Incident Response Workflow
+[Telemetry health check](automation/validate-sentinel-telemetry.ps1) queries recent Windows Security and PowerShell 4104 ingestion from `LAB-WIN01`.
 
 ```text
-Generate controlled activity
-        ↓
-Validate endpoint telemetry
-        ↓
-Confirm Log Analytics ingestion
-        ↓
-Develop and manually validate KQL
-        ↓
-Create Sentinel analytics rule
-        ↓
-Generate fresh activity
-        ↓
-Validate SecurityAlert / SecurityIncident
-        ↓
-Investigate and map MITRE ATT&CK
-        ↓
-Classify and document findings
+Controlled activity → endpoint telemetry → Log Analytics → verified KQL
+→ scheduled analytics → alert/incident validation → investigation
+→ MITRE ATT&CK mapping → classification and documentation
 ```
 
-Lab-generated incidents are classified as **True Positive — Benign / Authorized Simulation** when the detection correctly identifies intentionally generated activity.
+## Repository contents
 
-# Repository Structure
+- [Architecture](architecture/architecture.md) and SVG diagram
+- Five detection files in `detections/`
+- Five completed case studies in `incidents/`
+- [Screenshot inventory](screenshots/EVIDENCE_INVENTORY.md), including Days 4–7
+- [PowerShell telemetry validation](automation/validate-sentinel-telemetry.ps1)
 
-```text
-AzureChat/
-├── README.md
-├── architecture/
-│   ├── architecture.md
-│   └── sentinel-soc-lab-architecture.svg
-├── automation/
-│   └── validate-sentinel-telemetry.ps1
-├── detections/
-│   ├── failed-logon-detection.kql
-│   ├── suspicious-powershell.kql
-│   ├── multi-stage-logon-powershell-correlation.kql
-│   ├── privileged-account-correlation.kql
-│   └── suspicious-process-detection.kql
-├── incidents/
-│   ├── INC-001-failed-logon-investigation.md
-│   ├── INC-002-powershell-investigation.md
-│   ├── INC-003-multi-stage-correlation.md
-│   ├── INC-004-privileged-account-investigation.md
-│   └── INC-005-suspicious-process-investigation.md
-└── screenshots/
-    ├── day4-*.png
-    ├── day5-*.png
-    └── day6-*.png
-```
+## Project status
 
-# Skills Demonstrated
-
-Microsoft Sentinel · Microsoft Defender portal · Azure Monitor · Log Analytics · Azure Monitor Agent · Data Collection Rules · Windows Security logging · PowerShell Script Block Logging · KQL · Cross-table joins · Temporal correlation · SID-based correlation · Detection engineering · Scheduled analytics rules · Privileged account monitoring · Alert and incident investigation · MITRE ATT&CK · PowerShell automation · SOC documentation
-
-# Project Status
-
-- [x] Windows telemetry collection
-- [x] Repeated failed-logon detection
-- [x] PowerShell Script Block Logging collection
-- [x] Suspicious PowerShell detection
-- [x] Scheduled analytics rules
-- [x] Fresh PowerShell alert and incident generation
-- [x] Cross-table KQL correlation
-- [x] Multi-stage authentication + PowerShell detection
-- [x] Fresh multi-stage alert and incident generation
-- [x] Privileged/account modification telemetry
-- [x] SID-based account creation → Administrators correlation
-- [x] Privileged-account scheduled analytics rule
-- [x] Fresh privileged-account alert and incident generation
-- [x] Privileged-account investigation documentation and evidence
-- [x] MITRE ATT&CK mapping
-- [x] Incident investigation documentation
-- [x] Architecture documentation
+- [x] Windows Security and PowerShell telemetry collection
+- [x] Repeated failed-logon detection and investigation
+- [x] Suspicious PowerShell rule, alert, incident and investigation
+- [x] Multi-stage correlation rule, alert, incident and investigation
+- [x] SID-based privileged-account rule, alert, incident and investigation
+- [x] Safe suspicious-process simulation and Event ID 4688 validation
+- [x] Suspicious-process Sentinel rule, alert, incident, screenshots, and investigation report
+- [x] Five original detection scenarios and five incident reports complete
+- [x] Architecture, MITRE ATT&CK mapping and evidence inventory
 - [x] Telemetry validation automation
-- [ ] Safe suspicious-process simulation and Event ID 4688 validation
-- [ ] Suspicious-process Sentinel rule, alert, incident, screenshots, and investigation report
 
-## Next Extensions
+## Optional extensions
 
-Remaining original Project 1 work is the safe suspicious-process scenario and its live evidence chain. Additional automation/reproducibility work remains optional hardening.
+Additional reproducibility and automation hardening, production tuning, and expanded alert-to-incident linkage captures are optional improvements beyond the completed original scope.
