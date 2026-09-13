@@ -29,10 +29,20 @@ Write-Host 'Simulation complete.'
 Write-Host 'Expected Security events: 4720 (account created) and 4732 (member added to local security-enabled group).'
 Write-Host 'The built-in Administrators group SID is S-1-5-32-544.'
 Write-Host ''
+Write-Host 'Waiting briefly for Security log events to become queryable...'
+Start-Sleep -Seconds 3
+
+$events = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4720,4732; StartTime=(Get-Date).AddMinutes(-10)} -ErrorAction SilentlyContinue
+
 Write-Host 'Recent matching local events:'
-Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4720,4732; StartTime=(Get-Date).AddMinutes(-10)} |
-    Select-Object TimeCreated, Id, ProviderName, Message |
-    Format-List
+if ($events) {
+    $events |
+        Select-Object TimeCreated, Id, ProviderName, Message |
+        Format-List
+}
+else {
+    Write-Warning 'No matching 4720/4732 events were returned yet. Re-run the event query after a few seconds.'
+}
 
 Write-Host ''
 Write-Host 'After Sentinel validation is complete, clean up with:'
