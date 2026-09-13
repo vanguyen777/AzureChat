@@ -1,0 +1,35 @@
+// Proposed Scenario 5 detection.
+// Azure validation is pending. This query requires SecurityEvent ID 4688
+// ingestion and command-line auditing on LAB-WIN01.
+
+SecurityEvent
+| where TimeGenerated > ago(15m)
+| where Computer =~ "LAB-WIN01" or Computer startswith_cs "LAB-WIN01."
+| where EventID == 4688
+| where isnotempty(CommandLine)
+| where NewProcessName endswith @"\certutil.exe"
+| where CommandLine contains "-decode" or CommandLine contains "/decode"
+| extend
+    HostName=tostring(split(Computer, ".")[0]),
+    AccountName=tostring(SubjectUserName),
+    AccountNTDomain=tostring(SubjectDomainName),
+    AccountSid=tostring(SubjectUserSid),
+    ProcessId=tostring(NewProcessId),
+    ProcessCreationTime=TimeGenerated
+| project
+    TimeGenerated,
+    Computer,
+    HostName,
+    AccountName,
+    AccountNTDomain,
+    AccountSid,
+    NewProcessName,
+    ProcessId,
+    ProcessCreationTime,
+    CommandLine,
+    ParentProcessName,
+    TokenElevationType,
+    MandatoryLabel,
+    SubjectLogonId,
+    EventRecordId
+| order by TimeGenerated desc
