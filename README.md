@@ -22,7 +22,7 @@ The environment uses a Windows Server endpoint connected through Azure Monitor A
 
 ## Lab Architecture
 
-![Microsoft Sentinel SOC lab architecture](architecture/sentinel-soc-lab-architecture.png)
+![Microsoft Sentinel SOC lab architecture](architecture/sentinel-soc-lab-architecture.svg)
 
 ```text
                          LAB-WIN01
@@ -77,7 +77,7 @@ The environment uses a Windows Server endpoint connected through Azure Monitor A
 
 ### Windows Security Events
 
-Windows Security telemetry is collected through AMA and `dcr-windows-security` into the `SecurityEvent` table. Events used in the lab include 4624 (successful logon), 4625 (failed logon), 4688 (process creation), 4720 (account created), 4722 (account enabled), 4724 (password reset attempt), 4725 (account disabled), 4732 (member added to a security-enabled local group), and 4733 (member removed from a security-enabled local group).
+Windows Security telemetry is collected through AMA and `dcr-windows-security` into the `SecurityEvent` table. Validated Windows Security events used in the lab include 4624 (successful logon), 4625 (failed logon), 4720 (account created), 4722 (account enabled), 4724 (password reset attempt), 4725 (account disabled), 4732 (member added to a security-enabled local group), and 4733 (member removed from a security-enabled local group). Event ID 4688 process creation is a planned fifth-scenario validation item; its collection and command-line fields have not yet been validated in this repository.
 
 ### PowerShell Script Block Logging
 
@@ -223,7 +223,7 @@ AzureChat/
 ├── README.md
 ├── architecture/
 │   ├── architecture.md
-│   └── sentinel-soc-lab-architecture.png
+│   └── sentinel-soc-lab-architecture.svg
 ├── automation/
 │   └── validate-sentinel-telemetry.ps1
 ├── detections/
@@ -266,7 +266,9 @@ Microsoft Sentinel · Microsoft Defender portal · Azure Monitor · Log Analytic
 - [x] Incident investigation documentation
 - [x] Architecture documentation
 - [x] Telemetry validation automation
+- [ ] Safe suspicious-process simulation and Event ID 4688 validation
+- [ ] Suspicious-process Sentinel rule, alert, incident, screenshots, and investigation report
 
 ## Next Extensions
 
-Remaining original Project 1 work includes a safe malware-like simulation, richer investigation evidence, and additional automation/reproducibility work.
+Remaining original Project 1 work is the safe suspicious-process scenario and its live evidence chain. Additional automation/reproducibility work remains optional hardening.
