@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+<title id="title">Microsoft Sentinel SOC lab architecture</title>
+<desc id="desc">LAB-WIN01 sends Windows Security and PowerShell telemetry through Azure Monitor Agent and separate data collection rules to Log Analytics and Microsoft Sentinel.</desc>
+<defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,3 L0,6 z" fill="#334155"/></marker>
+  <style>
+    .box{fill:#eff6ff;stroke:#2563eb;stroke-width:2;rx:12}
+    .store{fill:#f0fdf4;stroke:#16a34a;stroke-width:2;rx:12}
+    .siem{fill:#fff7ed;stroke:#ea580c;stroke-width:2;rx:12}
+    .label{font-family:Arial,sans-serif;font-size:18px;fill:#0f172a;text-anchor:middle}
+    .small{font-family:Arial,sans-serif;font-size:15px;fill:#334155;text-anchor:middle}
+    .line{stroke:#334155;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+  </style>
+</defs>
+<rect width="1200" height="760" fill="#ffffff"/>
+<text x="600" y="42" class="label" font-size="26" font-weight="bold">Microsoft Sentinel SOC &amp; Incident Response Lab</text>
+<rect x="430" y="75" width="340" height="70" class="box"/><text x="600" y="105" class="label" font-weight="bold">LAB-WIN01</text><text x="600" y="130" class="small">Windows Server 2022</text>
+<rect x="80" y="205" width="300" height="90" class="box"/><text x="230" y="240" class="label">Windows Security Log</text><text x="230" y="267" class="small">4625 / 4720 / 4732 / 4733</text>
+<rect x="820" y="205" width="300" height="90" class="box"/><text x="970" y="240" class="label">PowerShell Operational</text><text x="970" y="267" class="small">Event ID 4104</text>
+<rect x="430" y="355" width="340" height="75" class="box"/><text x="600" y="388" class="label" font-weight="bold">Azure Monitor Agent</text><text x="600" y="412" class="small">AMA</text>
+<rect x="80" y="490" width="300" height="90" class="box"/><text x="230" y="525" class="label">dcr-windows-security</text><text x="230" y="552" class="small">Microsoft-SecurityEvent</text>
+<rect x="820" y="490" width="300" height="90" class="box"/><text x="970" y="525" class="label">dcr-powershell-logs</text><text x="970" y="552" class="small">Microsoft-Event</text>
+<rect x="430" y="625" width="340" height="75" class="store"/><text x="600" y="657" class="label" font-weight="bold">Log Analytics</text><text x="600" y="682" class="small">SecurityEvent + Event</text>
+<rect x="875" y="625" width="245" height="75" class="siem"/><text x="997" y="657" class="label" font-weight="bold">Microsoft Sentinel</text><text x="997" y="682" class="small">KQL → Alert → Incident</text>
+<path d="M500 145 L300 205" class="line"/><path d="M700 145 L900 205" class="line"/>
+<path d="M230 295 L500 355" class="line"/><path d="M970 295 L700 355" class="line"/>
+<path d="M500 430 L300 490" class="line"/><path d="M700 430 L900 490" class="line"/>
+<path d="M230 580 L500 625" class="line"/><path d="M970 580 L700 625" class="line"/>
+<path d="M770 662 L875 662" class="line"/>
+</svg>
