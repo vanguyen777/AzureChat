@@ -1,4 +1,5 @@
 SecurityEvent
+| where TimeGenerated > ago(15m)
 | where EventID == 4625
 | summarize
     FailedLogons=count(),
