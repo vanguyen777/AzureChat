@@ -1,0 +1,41 @@
+let CreatedAccounts =
+    SecurityEvent
+    | where TimeGenerated > ago(30m)
+    | where Computer == "LAB-WIN01"
+    | where EventID == 4720
+    | project
+        CreationTime=TimeGenerated,
+        Computer,
+        CreatedAccount=TargetAccount,
+        CreatedUser=TargetUserName,
+        CreatedSid=tostring(TargetSid);
+
+let PrivilegedAdditions =
+    SecurityEvent
+    | where TimeGenerated > ago(30m)
+    | where Computer == "LAB-WIN01"
+    | where EventID == 4732
+    | where TargetSid == "S-1-5-32-544"
+    | project
+        PrivilegeTime=TimeGenerated,
+        Computer,
+        AddedMemberSid=tostring(MemberSid),
+        PrivilegedGroup=TargetAccount,
+        Actor=SubjectAccount;
+
+CreatedAccounts
+| join kind=inner (PrivilegedAdditions) on Computer
+| where CreatedSid == AddedMemberSid
+| where PrivilegeTime >= CreationTime
+| where PrivilegeTime <= CreationTime + 15m
+| project
+    TimeGenerated=PrivilegeTime,
+    Computer,
+    CreatedUser,
+    CreatedAccount,
+    CreatedSid,
+    PrivilegedGroup,
+    Actor,
+    CreationTime,
+    PrivilegeTime
+| order by TimeGenerated desc
